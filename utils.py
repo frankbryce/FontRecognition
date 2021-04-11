@@ -13,6 +13,7 @@ import numpy as np
 import os
 import pandas as pd
 import tensorflow as tf
+from tqdm import trange
 
 assert tf.__version__.startswith("2")
 
@@ -101,11 +102,13 @@ def read_data(fontDir):
                         yield np.array([0, 0, 0, 0, 1])
                     foreground = 0  # only the first contour is "positive" space
 
-        for fontNo, file in enumerate(os.listdir(fontDir)):
+        ttf_files = os.listdir(fontDir)
+        for fontNo in trange(len(ttf_files)):
+            file = ttf_files[fontNo]
             fullpath = os.path.join(fontDir, file)
             if not os.path.isfile(fullpath):
                 continue
-            print("Font #: %d, %s" % (fontNo, file))
+            # print("Font #: %d, %s" % (fontNo, file))
             font = TTFont(fullpath)
             glyphset = font.getGlyphSet()
             for i, c in enumerate(characters):
@@ -161,8 +164,10 @@ def load_dataset(
         validate_dataset: validate dataset
     """
 
+    print("loading train_dataset...")
     train_dataset = read_data(dataset_path + "train")
     train_dataset = train_dataset.shuffle(buffer_size).batch(batch_size)
+    print("loading validate_dataset...")
     validate_dataset = read_data(dataset_path + "validate")
     validate_dataset = validate_dataset.batch(batch_size)
 
