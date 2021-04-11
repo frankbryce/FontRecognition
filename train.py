@@ -135,6 +135,7 @@ class Train(object):
             inputs: Tuple of features, labels tensors
         """
         features, lbls = inputs
+        lbls = np.argmax(lbls, axis=1)
         predictions = self.net(features, training=False)
 
         t_loss = self.loss_function(lbls, predictions)
