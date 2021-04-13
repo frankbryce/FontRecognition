@@ -15,13 +15,11 @@ class EncoderLabeler(tf.keras.Model):
     ):
         super(EncoderLabeler, self).__init__()
 
-        # TODO: encode inp_dim
-        self.encoder = Encoder(num_layers, d_model, num_heads, dff, rate, 5)
+        self.encoder = Encoder(num_layers, d_model, num_heads, dff, rate)
         self.num_labels = num_labels
 
     # @tf.function(input_signature=[tf.TensorSpec([None,None],tf.int64,name='inp'),
-    #                              tf.TensorSpec([None,None],tf.int64,name='out'),
-    #                              tf.TensorSpec(None,tf.bool,name='flag')])
+    #                               tf.TensorSpec(None,tf.bool,name='training')])
     def call(self, inp, training=False):
         enc_output = self.encoder(inp, training)  # (batch_size, inp_seq_len, d_model)
 

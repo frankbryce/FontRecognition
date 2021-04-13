@@ -33,12 +33,12 @@ def net_flags():
     flags.DEFINE_integer(
         "d_model", 128, "Output dimesion of all sublayers including Embedding layer"
     )
-    flags.DEFINE_integer("dff", 256, "Dimensionality of inner layer")
+    flags.DEFINE_integer("dff", 512, "Dimensionality of inner layer")
     flags.DEFINE_integer("num_heads", 4, "Number of Attention Head")
     flags.DEFINE_boolean("enable_function", False, "Enable Function")
     flags.DEFINE_integer("max_ckpt_keep", 5, "Maximum Number of Checkpoint to keep")
     flags.DEFINE_string("ckpt_path", "model_dist", "Checkpoint Path")
-    flags.DEFINE_float("dropout_rate", 0.05, "Dropout Probability")
+    flags.DEFINE_float("dropout_rate", 0.01, "Dropout Probability")
     flags.DEFINE_bool("testing", False,
             ("Used to test locally on laptop, before uploading to github to run "
              "in colab. This loads only one test point, and expedites testing "
