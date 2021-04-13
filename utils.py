@@ -21,7 +21,7 @@ FLAGS = flags.FLAGS
 
 
 def net_flags():
-    flags.DEFINE_string("dataset_path", "/home/jonnyjack7/fonts/dataset/", " Dataset Folder")
+    flags.DEFINE_string("dataset_path", "dataset/", " Dataset Folder")
     flags.DEFINE_integer("buffer_size", 100000, "Shuffle buffer size")
     flags.DEFINE_integer(
         "sequence_length", 100, "Maxinum number of words in a sequence"
@@ -39,6 +39,11 @@ def net_flags():
     flags.DEFINE_integer("max_ckpt_keep", 5, "Maximum Number of Checkpoint to keep")
     flags.DEFINE_string("ckpt_path", "model_dist", "Checkpoint Path")
     flags.DEFINE_float("dropout_rate", 0.05, "Dropout Probability")
+    flags.DEFINE_bool("testing", False,
+            ("Used to test locally on laptop, before uploading to github to run "
+             "in colab. This loads only one test point, and expedites testing "
+             "of the mechanics of the environment rather than focusing on "
+             "training accuracy."))
 
 
 def flags_dict():
@@ -135,6 +140,10 @@ def read_data(fontDir):
                 lbl = np.zeros(len(characters))
                 lbl[i] = 1
                 yield features, lbl
+
+            # if we're testing, only return one font to expedite testing
+            if FLAGS.testing:
+                return
 
     features, labels = [], []
     for f, l in generate():
