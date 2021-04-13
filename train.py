@@ -144,9 +144,8 @@ class Train(object):
 
     def load_ckpt(self):
         """if a checkpoint exists, restore the lavalidate checkpoint."""
-        if self.ckpt_manager.lavalidate_checkpoint:
-            self.ckpt.restore(self.ckpt_manager.lavalidate_checkpoint).expect_partial()
-            print("Lavalidate checkpoint restored!!")
+        status = self.ckpt_manager.restore_or_initialize()
+        print(f"ckpt_manager.restore_or_initialize(): {status}")
 
     def training_loop(self, train_dataset, validate_dataset):
         """Custom training and validateing loop.
@@ -194,13 +193,12 @@ class Train(object):
                 tf.summary.scalar("loss", self.validate_loss.result(), step=epoch)
                 tf.summary.scalar("accuracy", self.validate_accuracy.result(), step=epoch)
 
-            if (epoch + 1) % 5 or (epoch + 1 == self.epochs) == 0:
-                ckpt_save_path = self.ckpt_manager.save()
-                print(
-                    "Saving checkpoint for epoch {} at {}".format(
-                        epoch + 1, ckpt_save_path
-                    )
+            ckpt_save_path = self.ckpt_manager.save()
+            print(
+                "Saving checkpoint for epoch {} at {}".format(
+                    epoch + 1, ckpt_save_path
                 )
+            )
 
             print(
                 "Time taken for {} epoch: {} secs\n".format(
