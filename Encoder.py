@@ -1,6 +1,5 @@
 import tensorflow as tf
 from positionalencoding import positional_encoding
-from Attention import MultiHeadAttention
 from point_ffn import point_wise_feed_forward_network
 
 
