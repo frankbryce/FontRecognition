@@ -173,7 +173,7 @@ class Train(object):
             for src, tgt in train_dataset:
                 self.train_step((src, tgt))
                 counter += 1
-                if (counter + 1) % 100 == 0:
+                if (counter + 1) % 100 == 0 or ((counter + 1) % 10 == 0 and FLAGS.testing):
                     for t_src, t_tgt in validate_dataset:
                         self.validate_step((t_src, t_tgt))
                     print(
