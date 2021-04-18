@@ -170,8 +170,6 @@ class Train(object):
             start = time.time()
             counter = 0
 
-            print(len(train_dataset))
-            
             for src, tgt in train_dataset:
                 self.train_step((src, tgt))
                 counter += 1

@@ -15,13 +15,16 @@ class EncoderLayer(tf.keras.layers.Layer):
 
         self.layernorm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
         self.layernorm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
-        self.layernorm3 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+        self.dropout1 = tf.keras.layers.Dropout(rate)
+        self.dropout2 = tf.keras.layers.Dropout(rate)
 
     def call(self, x, training):
-        attn_output = self.mha(x, x)  # (batch_size, input_seq_len, d_model)
-        out1 = self.layernorm1(x + attn_output, training=training)  # (batch_size, input_seq_len, d_model)
-        out2 = self.layernorm2(self.ffn(out1), training=training)
-        return self.layernorm3(out1 + out2, training=training)
+        attn_output = self.mha(x, x)
+        attn_output = self.dropout1(attn_output, training=training)
+        out1 = self.layernorm1(x + attn_output)
+        ffn_output = self.ffn(out1)
+        ffn_output = self.dropout2(ffn_output, training=training)
+        return self.layernorm2(out1 + ffn_output)
 
 
 class Encoder(tf.keras.layers.Layer):
@@ -30,23 +33,27 @@ class Encoder(tf.keras.layers.Layer):
 
         self.d_model = d_model
         self.num_layers = num_layers
-        self.ffn = point_wise_feed_forward_network(d_model, dff)
+        self.input_emb = tf.keras.Sequential(
+        [
+            tf.keras.layers.Dense(dff*4, activation="relu"),  # (batch_size, seq_len, dff)
+            tf.keras.layers.Dense(dff*2, activation="relu"),  # (batch_size, seq_len, dff)
+            tf.keras.layers.Dense(dff, activation="relu"),  # (batch_size, seq_len, dff) 
+            tf.keras.layers.Dense(d_model, activation="relu"),  # (batch_size, seq_len, d_model)
+        ])
 
         # TODO: 100 is hard coded for bad reasons
-        self.pos_encoding = positional_encoding(100, d_model)
-
+        self.pos_encoding = tf.keras.layers.Embedding(input_dim=100, output_dim=d_model)
         self.enc_layers = [
             EncoderLayer(d_model, num_heads, dff, rate) for _ in range(num_layers)
         ]
 
-        self.dropout = tf.keras.layers.Dropout(rate)
-
     def call(self, x, training):
         seq_len = tf.shape(x)[1]
-        x = self.ffn(x)
-        x *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
-        x += self.pos_encoding[:, :seq_len, :]
-        x = self.dropout(x, training=training)
+        positions = tf.range(start=0, limit=seq_len, delta=1)
+        positions = self.pos_encoding(positions)
+
+        x = self.input_emb(x)
+        x = x + positions
         for i in range(self.num_layers):
             x = self.enc_layers[i](x, training)
 

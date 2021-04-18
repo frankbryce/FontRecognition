@@ -26,19 +26,19 @@ def net_flags():
     flags.DEFINE_integer(
         "sequence_length", 100, "Maxinum number of words in a sequence"
     )
-    flags.DEFINE_integer("epochs", 1000, "Number of Epochs")
+    flags.DEFINE_integer("epochs", 10000, "Number of Epochs")
     flags.DEFINE_integer("batch_size", 128, "Batch Size")
     flags.DEFINE_integer("per_replica_batch_size", 16, "Batch Size")
-    flags.DEFINE_integer("num_layers", 4, "Nnmber of Encoder/Decoder Stack")
+    flags.DEFINE_integer("num_layers", 1, "Number of Encoder/Decoder Stack")
     flags.DEFINE_integer(
         "d_model", 128, "Output dimesion of all sublayers including Embedding layer"
     )
-    flags.DEFINE_integer("dff", 512, "Dimensionality of inner layer")
-    flags.DEFINE_integer("num_heads", 4, "Number of Attention Head")
+    flags.DEFINE_integer("dff", 128, "Dimensionality of inner layer")
+    flags.DEFINE_integer("num_heads", 2, "Number of Attention Head")
     flags.DEFINE_boolean("enable_function", False, "Enable Function")
     flags.DEFINE_integer("max_ckpt_keep", 5, "Maximum Number of Checkpoint to keep")
     flags.DEFINE_string("ckpt_path", "model_dist", "Checkpoint Path")
-    flags.DEFINE_float("dropout_rate", 0.01, "Dropout Probability")
+    flags.DEFINE_float("dropout_rate", 0.1, "Dropout Probability")
     flags.DEFINE_bool("testing", False,
             ("Used to test locally on laptop, before uploading to github to run "
              "in colab. This loads only one test point, and expedites testing "
@@ -143,7 +143,7 @@ def read_data(fontDir):
 
             # if we're testing, only return one font to expedite testing
             if FLAGS.testing:
-                break
+                return
 
     features, labels = [], []
     for f, l in generate():
