@@ -90,7 +90,7 @@ def read_data(fontDir):
     # yields x, y, is_shape_point, is_foreground_glyph, sentinel_glyph_gap
     def generate():
         def glyph_pts(font, g, xOffset=0.0, yOffset=0.0):
-            yield np.array([0, 0, 0, 0, 1])
+            yield np.array([0, 0, 0, 0, 0.55])
             if g.numberOfContours == -1:
                 for comp in g.components:
                     glyph = font.getGlyphSet()[comp.glyphName]._glyph
@@ -99,13 +99,13 @@ def read_data(fontDir):
                     ):
                         yield p
             else:
-                foreground = 1
+                foreground = 0.55
                 for i, (x, y) in enumerate(g.coordinates):
                     end_contour = i in g.endPtsOfContours
-                    yield np.array([x, y, min(g.flags[i], 1.0), foreground, 0])
+                    yield np.array([x, y, max(min(g.flags[i], 1.0), 0.0)/10.0 + 0.45, foreground, 0.45])
                     if end_contour:
-                        yield np.array([0, 0, 0, 0, 1])
-                    foreground = 0  # only the first contour is "positive" space
+                        yield np.array([0, 0, 0, 0, 0.55])
+                    foreground = 0.45  # only the first contour is "positive" space
 
         ttf_files = os.listdir(fontDir)
         for fontNo in trange(len(ttf_files)):
