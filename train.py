@@ -20,6 +20,7 @@ from EncoderLabeler import EncoderLabeler
 
 assert tf.__version__.startswith("2")
 
+FLAGS = flags.FLAGS
 
 class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
     def __init__(self, d_model, warmup_steps=60000):
@@ -168,11 +169,13 @@ class Train(object):
 
             start = time.time()
             counter = 0
+
+            print(len(train_dataset))
             
             for src, tgt in train_dataset:
                 self.train_step((src, tgt))
                 counter += 1
-                if (counter + 1) % 100 == 0 or ((counter + 1) % 10 == 0 and FLAGS.testing):
+                if (counter + 1) % 100 == 0 or FLAGS.testing:
                     for t_src, t_tgt in validate_dataset:
                         self.validate_step((t_src, t_tgt))
                     print(
