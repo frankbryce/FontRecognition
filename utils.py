@@ -143,7 +143,7 @@ def read_data(fontDir):
 
             # if we're testing, only return one font to expedite testing
             if FLAGS.testing:
-                return
+                break
 
     features, labels = [], []
     for f, l in generate():
