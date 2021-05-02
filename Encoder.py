@@ -11,7 +11,7 @@ class EncoderLayer(tf.keras.layers.Layer):
                 num_heads,
                 d_model,
                 dropout=rate)
-        self.ffn = point_wise_feed_forward_network(d_model, dff)
+        self.ffn = point_wise_feed_forward_network(d_model, dff, rate)
 
         self.layernorm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
         self.layernorm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
@@ -31,13 +31,8 @@ class Encoder(tf.keras.layers.Layer):
     def __init__(self, num_layers, d_model, num_heads, dff, rate):
         super(Encoder, self).__init__()
 
-        self.d_model = d_model
         self.num_layers = num_layers
-        self.input_emb = tf.keras.Sequential(
-        [
-            tf.keras.layers.Dense(dff),  # (batch_size, seq_len, dff)
-            tf.keras.layers.Dense(d_model),  # (batch_size, seq_len, d_model)
-        ])
+        self.input_emb = point_wise_feed_forward_network(d_model, dff, rate)
 
         # TODO: 100 is hard coded for bad reasons
         self.pos_encoding = tf.keras.layers.Embedding(input_dim=100, output_dim=d_model)
@@ -54,4 +49,4 @@ class Encoder(tf.keras.layers.Layer):
         for i in range(self.num_layers):
             x = self.enc_layers[i](x, training)
 
-        return x  # (batch_size, input_seq_len, d_model
+        return x

@@ -25,15 +25,15 @@ def net_flags():
     flags.DEFINE_integer(
         "sequence_length", 100, "Maxinum number of words in a sequence"
     )
-    flags.DEFINE_integer("epochs", 100, "Number of Epochs")
+    flags.DEFINE_integer("epochs", 1000, "Number of Epochs")
     flags.DEFINE_integer("batch_size", 128, "Batch Size")
     flags.DEFINE_integer("per_replica_batch_size", 16, "Batch Size")
-    flags.DEFINE_integer("num_layers", 2, "Number of Encoder/Decoder Stack")
+    flags.DEFINE_integer("num_layers", 1, "Number of Encoder/Decoder Stack")
     flags.DEFINE_integer(
-        "d_model", 128, "Output dimesion of all sublayers including Embedding layer"
+        "d_model", 64, "Output dimesion of all sublayers including Embedding layer"
     )
-    flags.DEFINE_integer("dff", 1024, "Dimensionality of inner layer")
-    flags.DEFINE_integer("num_heads", 2, "Number of Attention Head")
+    flags.DEFINE_integer("dff", 128, "Dimensionality of inner layer")
+    flags.DEFINE_integer("num_heads", 8, "Number of Attention Head")
     flags.DEFINE_boolean("enable_function", False, "Enable Function")
     flags.DEFINE_integer("max_ckpt_keep", 5, "Maximum Number of Checkpoint to keep")
     flags.DEFINE_string("ckpt_path", "model_dist", "Checkpoint Path")
@@ -205,7 +205,7 @@ def read_data(fontDir):
                 yield features, lbl
 
             # if we're testing, only return one font to expedite testing
-            if FLAGS.testing:
+            if FLAGS.testing and fontNo >= 9:
                 return
 
     features, labels = [], []

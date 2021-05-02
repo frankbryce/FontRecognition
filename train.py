@@ -22,21 +22,6 @@ assert tf.__version__.startswith("2")
 
 FLAGS = flags.FLAGS
 
-class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
-    def __init__(self, d_model, warmup_steps=60000):
-        super(CustomSchedule, self).__init__()
-
-        self.d_model = d_model
-        self.d_model = tf.cast(self.d_model, tf.float32)
-
-        self.warmup_steps = warmup_steps
-
-    def __call__(self, step):
-        arg1 = tf.math.rsqrt(step)
-        arg2 = step * (self.warmup_steps ** -1.5)
-
-        return tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
-
 
 class Train(object):
     """Train class
@@ -70,79 +55,12 @@ class Train(object):
         self.enable_function = enable_function
         self.net = net
         self.batch_size = batch_size
-        self.learning_rate = CustomSchedule(d_model)
-        self.optimizer = tf.keras.optimizers.Adam(
-            self.learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9
-        )
-        self.loss_object = tf.keras.losses.CategoricalCrossentropy()
-        self.train_loss = tf.keras.metrics.Mean(name="train_loss")
-        self.validate_loss = tf.keras.metrics.Mean(name="validate_loss")
-        self.train_accuracy = tf.keras.metrics.CategoricalAccuracy(
-            name="train_accuracy"
-        )
-        self.validate_accuracy = tf.keras.metrics.CategoricalAccuracy(
-            name="validate_accuracy"
-        )
-
-        self.train_summary_writer = tf.summary.create_file_writer(train_log_dir)
-        self.validate_summary_writer = tf.summary.create_file_writer(validate_log_dir)
         self.ckpt = tf.train.Checkpoint(
-            net=self.net, optimizer=self.optimizer
+            net=self.net,
         )
         self.ckpt_manager = tf.train.CheckpointManager(
             self.ckpt, ckpt_path, max_to_keep=max_ckpt_keep
         )
-
-    def loss_function(self, real, pred):
-        loss_ = self.loss_object(real, pred)
-        return tf.reduce_sum(loss_) * 1.0 / self.batch_size
-
-    @tf.function
-    def predict(self, features):
-        """Greedy Inference
-
-        Args:
-            input points: encoded ttf points
-        Return:
-            result: predicted result of the input sentence
-        """
-        predictions = self.net.call(features, False)
-        predicted_id = tf.cast(tf.argmax(predictions, axis=-1), tf.int64)
-        return predicted_id
-
-    def train_step(self, inputs):
-        """One Training Step
-        Args:
-            inputs: Tuple of features, labels tensors
-        """
-        features, lbls = inputs
-        # lbls = np.argmax(lbls, axis=1)
-        with tf.GradientTape() as tape:
-            predictions = self.net(features, training=True)
-            lblsrt = np.argmax(lbls, axis=1)
-            lblidxs = np.argsort(lblsrt)
-            print(f"{np.array(predictions)[lblidxs]}\n{np.array(lbls)[lblidxs]}")
-            loss = self.loss_function(lbls, predictions)
-            gradients = tape.gradient(loss, self.net.trainable_variables)
-            self.optimizer.apply_gradients(
-                zip(gradients, self.net.trainable_variables)
-            )
-
-        self.train_loss(loss)
-        self.train_accuracy(lbls, predictions)
-
-    def validate_step(self, inputs):
-        """One validate Step
-        Args:
-            inputs: Tuple of features, labels tensors
-        """
-        features, lbls = inputs
-        # lbls = np.argmax(lbls, axis=1)
-        predictions = self.net(features, training=False)
-
-        t_loss = self.loss_function(lbls, predictions)
-        self.validate_loss(t_loss)
-        self.validate_accuracy(lbls, predictions)
 
     def load_ckpt(self):
         """if a checkpoint exists, restore the lavalidate checkpoint."""
@@ -159,10 +77,6 @@ class Train(object):
             validate_data: validation raw inputs
             validate_lbls: 1 hot encoded labels
         """
-
-        if self.enable_function:
-            self.train_step = tf.function(self.train_step)
-            self.validate_step = tf.function(self.validate_step)
         self.net.compile(
                 optimizer='adam',
                 loss='categorical_crossentropy',
@@ -172,7 +86,7 @@ class Train(object):
                 train_data,
                 train_lbls,
                 epochs=self.epochs,
-                batch_size=52)
+                batch_size=self.batch_size)
         train_loss, train_acc = self.net.evaluate(train_data, train_lbls)
         validate_loss, validate_acc = self.net.evaluate(validate_data, validate_lbls)
 
