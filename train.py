@@ -74,15 +74,13 @@ class Train(object):
         self.optimizer = tf.keras.optimizers.Adam(
             self.learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9
         )
-        self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
-                reduction=tf.keras.losses.Reduction.NONE,
-        )
+        self.loss_object = tf.keras.losses.CategoricalCrossentropy()
         self.train_loss = tf.keras.metrics.Mean(name="train_loss")
         self.validate_loss = tf.keras.metrics.Mean(name="validate_loss")
-        self.train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
+        self.train_accuracy = tf.keras.metrics.CategoricalAccuracy(
             name="train_accuracy"
         )
-        self.validate_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
+        self.validate_accuracy = tf.keras.metrics.CategoricalAccuracy(
             name="validate_accuracy"
         )
 
@@ -118,9 +116,12 @@ class Train(object):
             inputs: Tuple of features, labels tensors
         """
         features, lbls = inputs
-        lbls = np.argmax(lbls, axis=1)
+        # lbls = np.argmax(lbls, axis=1)
         with tf.GradientTape() as tape:
             predictions = self.net(features, training=True)
+            lblsrt = np.argmax(lbls, axis=1)
+            lblidxs = np.argsort(lblsrt)
+            print(f"{np.array(predictions)[lblidxs]}\n{np.array(lbls)[lblidxs]}")
             loss = self.loss_function(lbls, predictions)
             gradients = tape.gradient(loss, self.net.trainable_variables)
             self.optimizer.apply_gradients(
@@ -136,7 +137,7 @@ class Train(object):
             inputs: Tuple of features, labels tensors
         """
         features, lbls = inputs
-        lbls = np.argmax(lbls, axis=1)
+        # lbls = np.argmax(lbls, axis=1)
         predictions = self.net(features, training=False)
 
         t_loss = self.loss_function(lbls, predictions)
@@ -148,64 +149,32 @@ class Train(object):
         status = self.ckpt_manager.restore_or_initialize()
         print(f"ckpt_manager.restore_or_initialize(): {status}")
 
-    def training_loop(self, train_dataset, validate_dataset):
+    def training_loop(self, train_data, train_lbls, validate_data,
+            validate_lbls):
         """Custom training and validateing loop.
 
         Args:
-            train_dataset: Training dataset
-            validate_dataset: validateing dataset
+            train_data: Training raw inputs
+            train_lbls: 1 hot encoded labels
+            validate_data: validation raw inputs
+            validate_lbls: 1 hot encoded labels
         """
 
         if self.enable_function:
             self.train_step = tf.function(self.train_step)
             self.validate_step = tf.function(self.validate_step)
-        template = "Epoch {}  Loss {:.4f} Accuracy {:.4f}, validate Loss {:.4f}, validate Accuracy {:.4f}"
+        self.net.compile(
+                optimizer='adam',
+                loss='categorical_crossentropy',
+                metrics=['accuracy'])
 
-        for epoch in range(self.epochs):
-            self.train_loss.reset_states()
-            self.validate_loss.reset_states()
-            self.train_accuracy.reset_states()
-            self.validate_accuracy.reset_states()
-
-            start = time.time()
-            counter = 0
-
-            for src, tgt in train_dataset:
-                self.train_step((src, tgt))
-                counter += 1
-                if (counter + 1) % 100 == 0 or FLAGS.testing:
-                    for t_src, t_tgt in validate_dataset:
-                        self.validate_step((t_src, t_tgt))
-                    print(
-                        template.format(
-                            epoch + 1,
-                            self.train_loss.result(),
-                            self.train_accuracy.result() * 100,
-                            self.validate_loss.result(),
-                            self.validate_accuracy.result() * 100,
-                        )
-                    )
-
-            with self.train_summary_writer.as_default():
-                tf.summary.scalar("loss", self.train_loss.result(), step=epoch)
-                tf.summary.scalar("accuracy", self.train_accuracy.result(), step=epoch)
-
-            with self.validate_summary_writer.as_default():
-                tf.summary.scalar("loss", self.validate_loss.result(), step=epoch)
-                tf.summary.scalar("accuracy", self.validate_accuracy.result(), step=epoch)
-
-            ckpt_save_path = self.ckpt_manager.save()
-            print(
-                "Saving checkpoint for epoch {} at {}".format(
-                    epoch + 1, ckpt_save_path
-                )
-            )
-
-            print(
-                "Time taken for {} epoch: {} secs\n".format(
-                    epoch + 1, (time.time() - start)
-                )
-            )
+        self.net.fit(
+                train_data,
+                train_lbls,
+                epochs=self.epochs,
+                batch_size=52)
+        train_loss, train_acc = self.net.evaluate(train_data, train_lbls)
+        validate_loss, validate_acc = self.net.evaluate(validate_data, validate_lbls)
 
 
 def run_main(argv):
@@ -218,7 +187,6 @@ def run_main(argv):
 def main(
     epochs,
     enable_function,
-    buffer_size,
     batch_size,
     d_model,
     dff,
@@ -236,11 +204,10 @@ def main(
     validate_log_dir = "logs/gradient_tape/" + current_time + "/validate"
     num_labels = 52
 
-    train_dataset, validate_dataset = utils.load_dataset(
+    (train_data, train_lbls), (validate_data, validate_lbls) = utils.load_dataset(
         dataset_path,
         sequence_length,
         batch_size,
-        buffer_size,
     )
     net = EncoderLabeler(
         num_layers,
@@ -264,7 +231,11 @@ def main(
         d_model,
     )
 
-    train_obj.training_loop(train_dataset, validate_dataset)
+    train_obj.training_loop(
+            train_data,
+            train_lbls,
+            validate_data,
+            validate_lbls)
     train_obj.load_ckpt()
     tf.saved_model.save(train_obj.net, "model")
 

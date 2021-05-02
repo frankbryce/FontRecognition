@@ -16,18 +16,12 @@ class EncoderLabeler(tf.keras.Model):
         super(EncoderLabeler, self).__init__()
 
         self.encoder = Encoder(num_layers, d_model, num_heads, dff, rate)
-        self.num_labels = num_labels
+        self.flatten = tf.keras.layers.Flatten()
+        self.dense = tf.keras.layers.Dense(units=num_labels)
+        self.softmax = tf.keras.layers.Softmax()
 
     # @tf.function(input_signature=[tf.TensorSpec([None,None],tf.int64,name='inp'),
     #                               tf.TensorSpec(None,tf.bool,name='training')])
     def call(self, inp, training=False):
         enc_output = self.encoder(inp, training)  # (batch_size, inp_seq_len, d_model)
-
-        # I think this is what makes sense, though potentially d_model needs to
-        # get much smaller..
-        o1 = tf.keras.layers.Flatten()(enc_output)
-        o2 = tf.keras.layers.Dense(units=self.num_labels, activation='relu')(o1)
-        final_output = tf.keras.layers.Softmax()(o2)
-        # (batch_size, tar_seq_len, num_labels)
-
-        return final_output
+        return self.softmax(self.dense(self.flatten(enc_output)))

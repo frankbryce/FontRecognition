@@ -35,10 +35,8 @@ class Encoder(tf.keras.layers.Layer):
         self.num_layers = num_layers
         self.input_emb = tf.keras.Sequential(
         [
-            tf.keras.layers.Dense(dff*4, activation="relu"),  # (batch_size, seq_len, dff)
-            tf.keras.layers.Dense(dff*2, activation="relu"),  # (batch_size, seq_len, dff)
-            tf.keras.layers.Dense(dff, activation="relu"),  # (batch_size, seq_len, dff) 
-            tf.keras.layers.Dense(d_model, activation="relu"),  # (batch_size, seq_len, d_model)
+            tf.keras.layers.Dense(dff),  # (batch_size, seq_len, dff)
+            tf.keras.layers.Dense(d_model),  # (batch_size, seq_len, d_model)
         ])
 
         # TODO: 100 is hard coded for bad reasons
@@ -49,8 +47,7 @@ class Encoder(tf.keras.layers.Layer):
 
     def call(self, x, training):
         seq_len = tf.shape(x)[1]
-        positions = tf.range(start=0, limit=seq_len, delta=1)
-        positions = self.pos_encoding(positions)
+        positions = self.pos_encoding(tf.range(start=0, limit=seq_len, delta=1))
 
         x = self.input_emb(x)
         x = x + positions
